@@ -48,7 +48,7 @@ except ImportError:
     ImportError('You need to install libyaml for increase pyyaml perfomance')
 
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 
 class YamlPage(object):
