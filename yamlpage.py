@@ -38,6 +38,13 @@ Get page
 
     >>> p.get('/not/found/') is None
     True
+
+Check exists
+
+    >>> p.exists(url)
+    True
+    >>> p.exists('/not/found/')
+    False
 '''
 import os
 
@@ -60,6 +67,10 @@ class YamlPage(object):
         '''
         filename = url.replace('/', '#') + '.yml'
         return os.path.join(self.root_dir, filename)
+
+    def exists(self, url):
+        filename = self.url_to_path(url)
+        return os.path.isfile(filename)
 
     def get(self, url):
         '''Return loaded yaml or None'''
@@ -156,4 +167,4 @@ if __name__ == '__main__':
     shutil.rmtree(content_dir, ignore_errors=True)
     os.makedirs(content_dir)
 
-    doctest.testmod(verbose=True)
+    print doctest.testmod()
