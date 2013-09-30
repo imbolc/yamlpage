@@ -7,11 +7,15 @@ try:
 except ImportError:
 	from distutils.core import setup
 
-import yamlpage as mod
+try:
+    import yamlpage as mod
+except ImportError:
+    DOC = ''
+else:
+    DOC = mod.__doc__.strip()
 
-
-NAME = mod.__name__
-DOC = mod.__doc__.strip()
+NAME = 'yamlpage'
+VER = '0.0.4'
 
 
 open('README.md', 'w').write(DOC)
@@ -26,13 +30,13 @@ if len(sys.argv) == 1:
 
 
 setup(
-    name         = mod.__name__,
-    url          = 'https://github.com/imbolc/%s' % mod.__name__,
-    version      = mod.__version__,
-    description  = DOC.split('===\n')[1].strip().split('\n\n')[0],
-    long_description = mod.__doc__.split('\n\n', 1)[1],
+    name         = NAME,
+    url          = 'https://github.com/imbolc/%s' % NAME, 
+    version      = VER,
+    description  = DOC.split('===\n', 1)[-1].strip().split('\n\n')[0],
+    long_description = DOC.split('\n\n', 1)[-1],
 
-    py_modules   = [mod.__name__],
+    py_modules   = [NAME],
 
     author       = 'Imbolc',
     author_email = 'imbolc@imbolc.name',

@@ -20,7 +20,7 @@ Put page
     ...     ('body', 'foo\nbar'),
     ... ))
 
-    >>> path = './content/my#url.yml'
+    >>> path = './content/#my#url.yml'
     >>> print open(path).read()
     title: foo
     body: |-

@@ -22,7 +22,7 @@ Put page
     ...     ('body', 'foo\\nbar'),
     ... ))
 
-    >>> path = './content/my#url.yml'
+    >>> path = './content/#my#url.yml'
     >>> print open(path).read()
     title: foo
     body: |-
@@ -48,9 +48,6 @@ except ImportError:
     ImportError('You need to install libyaml for increase pyyaml perfomance')
 
 
-__version__ = '0.0.2'
-
-
 class YamlPage(object):
     def __init__(self, root_dir='.'):
         self.root_dir = root_dir
@@ -61,7 +58,7 @@ class YamlPage(object):
             >>> obj.url_to_path('a/b/c')
             'root/dir/a#b#c.yml'
         '''
-        filename = url.lstrip('/').replace('/', '#') + '.yml'
+        filename = url.replace('/', '#') + '.yml'
         return os.path.join(self.root_dir, filename)
 
     def get(self, url):
