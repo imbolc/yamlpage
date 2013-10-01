@@ -34,7 +34,7 @@ Put page
 Get page
 
     >>> p.get(url)
-    {'body': 'foo\\nbar', 'title': 'foo'}
+    {'body': 'foo\\nbar', 'url': '/my/url', 'filename': './content/#my#url.yml', 'title': 'foo'}
 
     >>> p.get('/not/found/') is None
     True
@@ -77,7 +77,10 @@ class YamlPage(object):
         filename = self.url_to_path(url)
         try:
             with open(filename) as f:
-                return yaml.load(f, Loader=CLoader)
+                page = yaml.load(f, Loader=CLoader)
+                page.setdefault('url', url)
+                page.setdefault('filename', filename)
+                return page
         except IOError:
             return None
 
