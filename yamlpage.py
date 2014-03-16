@@ -23,7 +23,7 @@ Put page
     ... ))
 
     >>> path = './content/#my#url.yml'
-    >>> print open(path).read()
+    >>> print(open(path).read())
     title: foo
     body: |-
       foo
@@ -33,8 +33,9 @@ Put page
 
 Get page
 
-    >>> p.get(url)
-    {'body': 'foo\\nbar', 'url': '/my/url', 'filename': './content/#my#url.yml', 'title': 'foo'}
+    >>> p.get(url) == {'body': 'foo\\nbar', 'url': '/my/url',
+    ...     'filename': './content/#my#url.yml', 'title': 'foo'}
+    True
 
     >>> p.get('/not/found/') is None
     True
@@ -46,13 +47,25 @@ Check exists
     >>> p.exists('/not/found/')
     False
 '''
+from __future__ import print_function
+from __future__ import absolute_import
+
 import os
+import sys
+import warnings
 
 import yaml
 try:
-    from yaml import CLoader
+    from yaml import CLoader as Loader
 except ImportError:
-    ImportError('You need to install libyaml for increase pyyaml perfomance')
+    warnings.warn('You have to install libyaml and reinstall pyyaml '
+                  'for increase perfomance')
+    from yaml import Loader
+
+
+if sys.version_info > (3, ):
+    unicode = str
+    basestring = str
 
 
 class YamlPage(object):
@@ -77,7 +90,7 @@ class YamlPage(object):
         filename = self.url_to_path(url)
         try:
             with open(filename) as f:
-                page = yaml.load(f, Loader=CLoader)
+                page = yaml.load(f, Loader=Loader)
                 page.setdefault('url', url)
                 page.setdefault('filename', filename)
                 return page
@@ -99,19 +112,22 @@ def _configure_dump():
     except ImportError:
         from ordereddict import OrderedDict
 
-    class literal(unicode): pass
-    class unquoted(unicode): pass
+    class literal(unicode):
+        pass
+
+    class unquoted(unicode):
+        pass
 
     def ordered_dict_presenter(dumper, data):
         return dumper.represent_dict(data.items())
 
     def literal_presenter(dumper, data):
         return dumper.represent_scalar(
-                u'tag:yaml.org,2002:str', data, style='|')
+            'tag:yaml.org,2002:str', data, style='|')
 
     def unquoted_presenter(dumper, data):
         return dumper.represent_scalar(
-                u'tag:yaml.org,2002:str', data, style='')
+            'tag:yaml.org,2002:str', data, style='')
 
     yaml.add_representer(literal, literal_presenter)
     yaml.add_representer(OrderedDict, ordered_dict_presenter)
@@ -127,12 +143,12 @@ def dumps(items):
         >>> dumps([1, 2, 3])
         '- 1\\n- 2\\n- 3\\n'
 
-        >>> print dumps([('foo', 1), ('bar', 2)])
+        >>> print(dumps([('foo', 1), ('bar', 2)]))
         foo: 1
         bar: 2
         <BLANKLINE>
 
-        >>> print dumps({'foo': 1, 'bar': 2})
+        >>> print(dumps({'foo': 1, 'bar': 2}))
         bar: 2
         foo: 1
         <BLANKLINE>
@@ -140,8 +156,7 @@ def dumps(items):
     conf = _configure_dump()
 
     if isinstance(items, dict):
-        items = items.items()
-        items.sort(key=lambda x: x[0])
+        items = sorted(items.items(), key=lambda x: x[0])
     try:
         dict(items)
     except (TypeError, ValueError):
@@ -160,14 +175,13 @@ def dumps(items):
     return yaml.dump(data, allow_unicode=True, default_flow_style=False)
 
 
-
 if __name__ == '__main__':
     import shutil
     import doctest
 
     content_dir = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), 'content')
+        os.path.dirname(os.path.abspath(__file__)), 'content')
     shutil.rmtree(content_dir, ignore_errors=True)
     os.makedirs(content_dir)
 
-    print doctest.testmod()
+    print (doctest.testmod())
