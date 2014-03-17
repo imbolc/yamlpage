@@ -89,7 +89,7 @@ class YamlPage(object):
         '''Return loaded yaml or None'''
         filename = self.url_to_path(url)
         try:
-            with open(filename) as f:
+            with open(filename, 'rb') as f:
                 page = yaml.load(f, Loader=Loader)
                 page.setdefault('url', url)
                 page.setdefault('filename', filename)
