@@ -61,6 +61,10 @@ except ImportError:
     warnings.warn('You have to install libyaml and reinstall pyyaml '
                   'for increase perfomance')
     from yaml import Loader
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 
 
 if sys.version_info > (3, ):
@@ -107,42 +111,36 @@ class YamlPage(object):
             f.write(dump)
 
 
-def _configure_dump():
-    global _configure_dump
+class literal(unicode):
+    pass
 
-    try:
-        from collections import OrderedDict
-    except ImportError:
-        from ordereddict import OrderedDict
 
-    class literal(unicode):
-        pass
+class unquoted(unicode):
+    pass
 
-    class unquoted(unicode):
-        pass
 
-    def ordered_dict_presenter(dumper, data):
-        return dumper.represent_dict(data.items())
+def ordered_dict_presenter(dumper, data):
+    return dumper.represent_dict(data.items())
 
-    def literal_presenter(dumper, data):
-        return dumper.represent_scalar(
-            'tag:yaml.org,2002:str', data, style='|')
 
-    def unquoted_presenter(dumper, data):
-        return dumper.represent_scalar(
-            'tag:yaml.org,2002:str', data, style='')
+def literal_presenter(dumper, data):
+    return dumper.represent_scalar(
+        'tag:yaml.org,2002:str', data, style='|')
 
-    yaml.add_representer(literal, literal_presenter)
-    yaml.add_representer(OrderedDict, ordered_dict_presenter)
-    yaml.add_representer(unquoted, unquoted_presenter)
 
-    configured = locals()
-    _configure_dump = lambda: configured
-    return configured
+def unquoted_presenter(dumper, data):
+    return dumper.represent_scalar(
+        'tag:yaml.org,2002:str', data, style='')
+
+yaml.add_representer(literal, literal_presenter)
+yaml.add_representer(OrderedDict, ordered_dict_presenter)
+yaml.add_representer(unquoted, unquoted_presenter)
 
 
 def dumps(items):
     '''
+    Tip: if you want to do literal (|) style of strings, remove trailing spaces
+
         >>> dumps([1, 2, 3])
         '- 1\\n- 2\\n- 3\\n'
 
@@ -156,8 +154,6 @@ def dumps(items):
         foo: 1
         <BLANKLINE>
     '''
-    conf = _configure_dump()
-
     if isinstance(items, dict):
         items = sorted(items.items(), key=lambda x: x[0])
     try:
@@ -165,15 +161,18 @@ def dumps(items):
     except (TypeError, ValueError):
         data = items
     else:
-        data = conf['OrderedDict']()
+        data = OrderedDict()
         for k, v in items:
             if isinstance(v, basestring):
                 if '\n' in v:
                     v = v.replace('\r', '')
                     v = v.replace('\t', '    ')
-                    v = conf['literal'](v)
+                    # literal string doesn't works
+                    # if any of string has trailing space
+                    v = '\n'.join(r.rstrip() for r in v.split('\n'))
+                    v = literal(v)
                 else:
-                    v = conf['unquoted'](v)
+                    v = unquoted(v)
             data[k] = v
     return yaml.dump(data, allow_unicode=True, default_flow_style=False)
 
