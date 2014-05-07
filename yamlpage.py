@@ -22,7 +22,7 @@ Put page
     ...     ('body', 'foo\\nbar'),
     ... ))
 
-    >>> path = './content/#my#url.yml'
+    >>> path = './content/^my^url.yaml'
     >>> print(open(path).read())
     title: foo
     body: |-
@@ -34,7 +34,7 @@ Put page
 Get page
 
     >>> p.get(url) == {'body': 'foo\\nbar', 'url': '/my/url',
-    ...     'filename': './content/#my#url.yml', 'title': 'foo'}
+    ...     'filename': './content/^my^url.yaml', 'title': 'foo'}
     True
 
     >>> p.get('/not/found/') is None
@@ -69,16 +69,19 @@ if sys.version_info > (3, ):
 
 
 class YamlPage(object):
-    def __init__(self, root_dir='.'):
+    def __init__(self, root_dir='.', path_delimiter='^',
+                 file_extension='yaml'):
         self.root_dir = root_dir
+        self.path_delimiter = path_delimiter
+        self.file_extension = '.' + file_extension.lstrip('.')
 
     def url_to_path(self, url):
         '''
             >>> obj = YamlPage('root/dir')
             >>> obj.url_to_path('a/b/c')
-            'root/dir/a#b#c.yml'
+            'root/dir/a^b^c.yaml'
         '''
-        filename = url.replace('/', '#') + '.yml'
+        filename = url.replace('/', self.path_delimiter) + self.file_extension
         return os.path.join(self.root_dir, filename)
 
     def exists(self, url):
@@ -184,4 +187,4 @@ if __name__ == '__main__':
     shutil.rmtree(content_dir, ignore_errors=True)
     os.makedirs(content_dir)
 
-    print (doctest.testmod())
+    print(doctest.testmod())
