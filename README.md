@@ -20,7 +20,7 @@ Put page
     ...     ('body', 'foo\nbar'),
     ... ))
 
-    >>> path = './content/#my#url.yml'
+    >>> path = './content/^my^url.yaml'
     >>> print(open(path).read())
     title: foo
     body: |-
@@ -32,7 +32,7 @@ Put page
 Get page
 
     >>> p.get(url) == {'body': 'foo\nbar', 'url': '/my/url',
-    ...     'filename': './content/#my#url.yml', 'title': 'foo'}
+    ...     'filename': './content/^my^url.yaml', 'title': 'foo'}
     True
 
     >>> p.get('/not/found/') is None
