@@ -98,11 +98,11 @@ class YamlPage(object):
         try:
             with open(filename, 'rb') as f:
                 page = yaml.load(f, Loader=Loader)
-                page.setdefault('url', url)
-                page.setdefault('filename', filename)
-                return page
-        except IOError:
+        except (IOError, UnicodeEncodeError):
             return None
+        page.setdefault('url', url)
+        page.setdefault('filename', filename)
+        return page
 
     def put(self, url, data):
         dump = dumps(data)
