@@ -10,6 +10,7 @@ Install
 
 Usage
 -----
+    >>> import os
     >>> from yamlpage import YamlPage
     >>> p = YamlPage('./content')
 
@@ -58,7 +59,7 @@ SingleFolderBackend (default) maps 'my/url' to filename 'my^url.yaml'
 
 MultiFolderBackend maps 'my/url' to filename 'my/url.yaml'
 
-    >>> p = YamlPage('./content', backend=MultiFolderBackend)
+    >>> p = YamlPage('./content', backend='MultiFolderBackend')
     >>> p.put('multi/folder/backend', 'data')
     >>> os.path.exists('./content/multi/folder/backend.yaml')
     True
