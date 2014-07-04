@@ -33,19 +33,35 @@ Put page
 
 Get page
 
-    >>> p.get(url) == {'body': 'foo\\nbar', 'url': '/my/url',
-    ...     'filename': './content/^my^url.yaml', 'title': 'foo'}
+    >>> p.get(url) == {'key': '/my/url', 'body': 'foo\\nbar', 'title': 'foo'}
     True
 
     >>> p.get('/not/found/') is None
     True
 
-Check exists
+Check if page exists
 
     >>> p.exists(url)
     True
     >>> p.exists('/not/found/')
     False
+
+
+Built in backends
+-----------------
+SingleFolderBackend (default) maps 'my/url' to filename 'my^url.yaml'
+
+    >>> p = YamlPage('./content')
+    >>> p.put('single/folder/backend', 'data')
+    >>> os.path.exists('./content/single^folder^backend.yaml')
+    True
+
+MultiFolderBackend maps 'my/url' to filename 'my/url.yaml'
+
+    >>> p = YamlPage('./content', backend=MultiFolderBackend)
+    >>> p.put('multi/folder/backend', 'data')
+    >>> os.path.exists('./content/multi/folder/backend.yaml')
+    True
 '''
 from __future__ import print_function
 from __future__ import absolute_import
@@ -53,6 +69,7 @@ from __future__ import absolute_import
 import os
 import sys
 import warnings
+import importlib
 
 import yaml
 try:
@@ -72,43 +89,119 @@ if sys.version_info > (3, ):
     basestring = str
 
 
-class YamlPage(object):
-    def __init__(self, root_dir='.', path_delimiter='^',
-                 file_extension='yaml'):
+class FileSystemBackend(object):
+    '''Parent for file system based backends'''
+    def __init__(self, root_dir='.', file_extension='yaml'):
         self.root_dir = root_dir
-        self.path_delimiter = path_delimiter
         self.file_extension = '.' + file_extension.lstrip('.')
 
-    def url_to_path(self, url):
+    def _key_to_path(self, key):
+        raise Exception('This method should be overridden')
+
+    def exists(self, key):
+        path = self._key_to_path(key)
+        return os.path.isfile(path)
+
+    def get(self, key):
+        path = self._key_to_path(key)
+        try:
+            with open(path, 'rb') as f:
+                return f.read().decode('utf-8')
+        except (IOError, UnicodeDecodeError):
+            pass
+
+    def put(self, key, content):
+        path = self._key_to_path(key)
+        dirname = os.path.dirname(path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
+        with open(path, 'w') as f:
+            f.write(content)
+
+
+class SingleFolderBackend(FileSystemBackend):
+    '''
+        >>> backend = SingleFolderBackend('./content/')
+        >>> backend.get('my/url')
+        >>> backend.exists('my/url')
+        False
+        >>> os.path.exists('./content/my^url.yaml')
+        False
+        >>> backend.put('my/url', 'data')
+        >>> os.path.exists('./content/my^url.yaml')
+        True
+        >>> backend.exists('my/url')
+        True
+        >>> backend.get('my/url') == 'data'
+        True
+    '''
+    def __init__(self, root_dir='.', file_extension='yaml',
+                 path_delimiter='^'):
+        super(SingleFolderBackend, self).__init__(root_dir, file_extension)
+        self.path_delimiter = path_delimiter
+
+    def _key_to_path(self, key):
         '''
-            >>> obj = YamlPage('root/dir')
-            >>> obj.url_to_path('a/b/c')
+            >>> backend = SingleFolderBackend('root/dir')
+            >>> backend._key_to_path('a/b/c')
             'root/dir/a^b^c.yaml'
         '''
-        filename = url.replace('/', self.path_delimiter) + self.file_extension
-        return os.path.join(self.root_dir, filename)
+        path = key.replace('/', self.path_delimiter) + self.file_extension
+        return os.path.join(self.root_dir, path)
 
-    def exists(self, url):
-        filename = self.url_to_path(url)
-        return os.path.isfile(filename)
 
-    def get(self, url):
+class MultiFolderBackend(FileSystemBackend):
+    '''
+        >>> backend = MultiFolderBackend('./content/')
+        >>> backend.get('my/url')
+        >>> backend.exists('my/url')
+        False
+        >>> os.path.exists('./content/my/url.yaml')
+        False
+        >>> backend.put('my/url', 'data')
+        >>> os.path.exists('./content/my/url.yaml')
+        True
+        >>> backend.exists('my/url')
+        True
+        >>> backend.get('my/url') == 'data'
+        True
+    '''
+    def _key_to_path(self, key):
+        '''
+            >>> backend = MultiFolderBackend('root/dir')
+            >>> backend._key_to_path('a/b/c')
+            'root/dir/a/b/c.yaml'
+            >>> backend._key_to_path('/a/b/c/')
+            'root/dir/a/b/c.yaml'
+            >>> backend._key_to_path('../../../a/b/c')
+            'root/dir/a/b/c.yaml'
+        '''
+        path = os.path.normpath(key).lstrip('./')
+        return os.path.join(self.root_dir, path) + self.file_extension
+
+
+class YamlPage(object):
+    def __init__(self, *args, **kwargs):
+        backend = kwargs.pop('backend', 'SingleFolderBackend')
+        backend_class = get_object_by_name(backend)
+        if not backend_class:
+            raise Exception('Unknown backend: %s' % backend)
+        self.backend = backend_class(*args, **kwargs)
+
+    def exists(self, key):
+        return self.backend.exists(key)
+
+    def get(self, key):
         '''Return loaded yaml or None'''
-        filename = self.url_to_path(url)
-        try:
-            with open(filename, 'rb') as f:
-                page = yaml.load(f, Loader=Loader)
-        except (IOError, UnicodeEncodeError):
-            return None
-        page.setdefault('url', url)
-        page.setdefault('filename', filename)
-        return page
+        dump = self.backend.get(key)
+        if dump:
+            page = yaml.load(dump, Loader=Loader)
+            page.setdefault('key', key)
+            return page
 
-    def put(self, url, data):
+    def put(self, key, data):
         dump = dumps(data)
-        filename = self.url_to_path(url)
-        with open(filename, 'w') as f:
-            f.write(dump)
+        self.backend.put(key, dump)
 
 
 class literal(unicode):
@@ -177,6 +270,21 @@ def dumps(items):
     return yaml.dump(data, allow_unicode=True, default_flow_style=False)
 
 
+def get_object_by_name(name):
+    '''
+        >>> dirname = get_object_by_name('os.path.dirname')
+        >>> dirname == os.path.dirname
+        True
+    '''
+    if not isinstance(name, basestring):
+        return name
+    if '.' not in name:
+        return globals().get(name)
+    modname, attrname = name.rsplit('.', 1)
+    module = importlib.import_module(modname)
+    return getattr(module, attrname, None)
+
+
 if __name__ == '__main__':
     import shutil
     import doctest
@@ -186,4 +294,6 @@ if __name__ == '__main__':
     shutil.rmtree(content_dir, ignore_errors=True)
     os.makedirs(content_dir)
 
-    print(doctest.testmod())
+    print(doctest.testmod(
+        optionflags=doctest.REPORT_ONLY_FIRST_FAILURE
+    ))

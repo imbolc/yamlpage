@@ -18,7 +18,7 @@ else:
     DOC = mod.__doc__.strip()
 
 NAME = 'yamlpage'
-VER = '1.0.2'
+VER = '2.0.0'
 
 
 open('README.md', 'w').write(DOC)
