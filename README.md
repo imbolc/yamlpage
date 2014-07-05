@@ -25,8 +25,8 @@ Put page
     >>> print(open(path).read())
     title: foo
     body: |-
-      foo
-      bar
+        foo
+        bar
     <BLANKLINE>
 
 

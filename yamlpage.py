@@ -27,8 +27,8 @@ Put page
     >>> print(open(path).read())
     title: foo
     body: |-
-      foo
-      bar
+        foo
+        bar
     <BLANKLINE>
 
 
@@ -268,7 +268,8 @@ def dumps(items):
                 else:
                     v = unquoted(v)
             data[k] = v
-    return yaml.dump(data, allow_unicode=True, default_flow_style=False)
+    return yaml.dump(data, allow_unicode=True, default_flow_style=False,
+                     indent=4)
 
 
 def get_object_by_name(name):
