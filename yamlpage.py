@@ -24,7 +24,8 @@ Put page
     ... ))
 
     >>> path = './content/^my^url.yaml'
-    >>> print(open(path).read())
+    >>> content = open(path).read()
+    >>> print(content)
     title: foo
     body: |-
         foo
@@ -34,7 +35,8 @@ Put page
 
 Get page
 
-    >>> p.get(url) == {'key': '/my/url', 'body': 'foo\\nbar', 'title': 'foo'}
+    >>> p.get(url) == {'key': '/my/url', 'body': 'foo\\nbar', 'title': 'foo',
+    ...                '_backend': {'path': path, 'content': content}}
     True
 
     >>> p.get('/not/found/') is None
@@ -107,7 +109,8 @@ class FileSystemBackend(object):
         path = self._key_to_path(key)
         try:
             with open(path, 'rb') as f:
-                return f.read().decode('utf-8')
+                content = f.read().decode('utf-8')
+                return {'path': path, 'content': content}
         except (IOError, UnicodeDecodeError):
             pass
 
@@ -122,18 +125,19 @@ class FileSystemBackend(object):
 
 class SingleFolderBackend(FileSystemBackend):
     '''
-        >>> backend = SingleFolderBackend('./content/')
+        >>> backend = SingleFolderBackend('./content/_single_folder')
         >>> backend.get('my/url')
         >>> backend.exists('my/url')
         False
         >>> os.path.exists('./content/my^url.yaml')
         False
         >>> backend.put('my/url', 'data')
-        >>> os.path.exists('./content/my^url.yaml')
+        >>> os.path.exists('./content/_single_folder/my^url.yaml')
         True
         >>> backend.exists('my/url')
         True
-        >>> backend.get('my/url') == 'data'
+        >>> backend.get('my/url') == {
+        ... 'path': './content/_single_folder/my^url.yaml', 'content': 'data'}
         True
     '''
     def __init__(self, root_dir='.', file_extension='yaml',
@@ -153,18 +157,19 @@ class SingleFolderBackend(FileSystemBackend):
 
 class MultiFolderBackend(FileSystemBackend):
     '''
-        >>> backend = MultiFolderBackend('./content/')
+        >>> backend = MultiFolderBackend('./content/_multi_folder')
         >>> backend.get('my/url')
         >>> backend.exists('my/url')
         False
-        >>> os.path.exists('./content/my/url.yaml')
+        >>> os.path.exists('./content/_multi_folder/my/url.yaml')
         False
         >>> backend.put('my/url', 'data')
-        >>> os.path.exists('./content/my/url.yaml')
+        >>> os.path.exists('./content/_multi_folder/my/url.yaml')
         True
         >>> backend.exists('my/url')
         True
-        >>> backend.get('my/url') == 'data'
+        >>> backend.get('my/url') == {
+        ... 'path': './content/_multi_folder/my/url.yaml', 'content': 'data'}
         True
     '''
     def _key_to_path(self, key):
@@ -196,8 +201,9 @@ class YamlPage(object):
         '''Return loaded yaml or None'''
         dump = self.backend.get(key)
         if dump:
-            page = yaml.load(dump, Loader=Loader)
+            page = yaml.load(dump['content'], Loader=Loader)
             page.setdefault('key', key)
+            page.setdefault('_backend', dump)
             return page
 
     def put(self, key, data):
@@ -294,7 +300,6 @@ if __name__ == '__main__':
     content_dir = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 'content')
     shutil.rmtree(content_dir, ignore_errors=True)
-    os.makedirs(content_dir)
 
     print(doctest.testmod(
         optionflags=doctest.REPORT_ONLY_FIRST_FAILURE

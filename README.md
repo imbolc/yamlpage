@@ -22,7 +22,8 @@ Put page
     ... ))
 
     >>> path = './content/^my^url.yaml'
-    >>> print(open(path).read())
+    >>> content = open(path).read()
+    >>> print(content)
     title: foo
     body: |-
         foo
@@ -32,7 +33,8 @@ Put page
 
 Get page
 
-    >>> p.get(url) == {'key': '/my/url', 'body': 'foo\nbar', 'title': 'foo'}
+    >>> p.get(url) == {'key': '/my/url', 'body': 'foo\nbar', 'title': 'foo',
+    ...                '_backend': {'path': path, 'content': content}}
     True
 
     >>> p.get('/not/found/') is None
