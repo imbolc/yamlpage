@@ -35,8 +35,7 @@ Put page
 
 Get page
 
-    >>> p.get(url) == {'key': '/my/url', 'body': 'foo\\nbar', 'title': 'foo',
-    ...                '_backend': {'path': path, 'content': content}}
+    >>> p.get(url) == {'body': 'foo\\nbar', 'title': 'foo'}
     True
 
     >>> p.get('/not/found/') is None
@@ -98,24 +97,23 @@ class FileSystemBackend(object):
         self.root_dir = root_dir
         self.file_extension = '.' + file_extension.lstrip('.')
 
-    def _key_to_path(self, key):
+    def key_to_path(self, key):
         raise Exception('This method should be overridden')
 
     def exists(self, key):
-        path = self._key_to_path(key)
+        path = self.key_to_path(key)
         return os.path.isfile(path)
 
     def get(self, key):
-        path = self._key_to_path(key)
+        path = self.key_to_path(key)
         try:
             with open(path, 'rb') as f:
-                content = f.read().decode('utf-8')
-                return {'path': path, 'content': content}
+                return f.read().decode('utf-8')
         except (IOError, UnicodeDecodeError):
             pass
 
     def put(self, key, content):
-        path = self._key_to_path(key)
+        path = self.key_to_path(key)
         dirname = os.path.dirname(path)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
@@ -136,8 +134,7 @@ class SingleFolderBackend(FileSystemBackend):
         True
         >>> backend.exists('my/url')
         True
-        >>> backend.get('my/url') == {
-        ... 'path': './content/_single_folder/my^url.yaml', 'content': 'data'}
+        >>> backend.get('my/url') == 'data'
         True
     '''
     def __init__(self, root_dir='.', file_extension='yaml',
@@ -145,10 +142,10 @@ class SingleFolderBackend(FileSystemBackend):
         super(SingleFolderBackend, self).__init__(root_dir, file_extension)
         self.path_delimiter = path_delimiter
 
-    def _key_to_path(self, key):
+    def key_to_path(self, key):
         '''
             >>> backend = SingleFolderBackend('root/dir')
-            >>> backend._key_to_path('a/b/c')
+            >>> backend.key_to_path('a/b/c')
             'root/dir/a^b^c.yaml'
         '''
         path = key.replace('/', self.path_delimiter) + self.file_extension
@@ -168,18 +165,17 @@ class MultiFolderBackend(FileSystemBackend):
         True
         >>> backend.exists('my/url')
         True
-        >>> backend.get('my/url') == {
-        ... 'path': './content/_multi_folder/my/url.yaml', 'content': 'data'}
+        >>> backend.get('my/url') == 'data'
         True
     '''
-    def _key_to_path(self, key):
+    def key_to_path(self, key):
         '''
             >>> backend = MultiFolderBackend('root/dir')
-            >>> backend._key_to_path('a/b/c')
+            >>> backend.key_to_path('a/b/c')
             'root/dir/a/b/c.yaml'
-            >>> backend._key_to_path('/a/b/c/')
+            >>> backend.key_to_path('/a/b/c/')
             'root/dir/a/b/c.yaml'
-            >>> backend._key_to_path('../../../a/b/c')
+            >>> backend.key_to_path('../../../a/b/c')
             'root/dir/a/b/c.yaml'
         '''
         path = os.path.normpath(key).lstrip('./')
@@ -199,11 +195,9 @@ class YamlPage(object):
 
     def get(self, key):
         '''Return loaded yaml or None'''
-        dump = self.backend.get(key)
-        if dump:
-            page = yaml.load(dump['content'], Loader=Loader)
-            page.setdefault('key', key)
-            page.setdefault('_backend', dump)
+        text = self.backend.get(key)
+        if text:
+            page = yaml.load(text, Loader=Loader)
             return page
 
     def put(self, key, data):
