@@ -147,9 +147,13 @@ class SingleFolderBackend(FileSystemBackend):
             >>> backend = SingleFolderBackend('root/dir')
             >>> backend.key_to_path('a/b/c')
             'root/dir/a^b^c.yaml'
+            >>> backend.key_to_path('')
+            'root/dir.yaml'
         '''
-        path = key.replace('/', self.path_delimiter) + self.file_extension
-        return os.path.join(self.root_dir, path)
+        path = key.replace('/', self.path_delimiter)
+        if not path:
+            return self.root_dir + self.file_extension
+        return os.path.join(self.root_dir, path) + self.file_extension
 
 
 class MultiFolderBackend(FileSystemBackend):
@@ -177,8 +181,12 @@ class MultiFolderBackend(FileSystemBackend):
             'root/dir/a/b/c.yaml'
             >>> backend.key_to_path('../../../a/b/c')
             'root/dir/a/b/c.yaml'
+            >>> backend.key_to_path('')
+            'root/dir.yaml'
         '''
         path = os.path.normpath(key).lstrip('./')
+        if not path:
+            return self.root_dir + self.file_extension
         return os.path.join(self.root_dir, path) + self.file_extension
 
 
