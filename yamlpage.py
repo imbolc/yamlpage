@@ -117,8 +117,8 @@ class FileSystemBackend(object):
         dirname = os.path.dirname(path)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
-        with open(path, 'w') as f:
-            f.write(content)
+        with open(path, 'wb') as f:
+            f.write(content.encode('utf-8'))
 
 
 class SingleFolderBackend(FileSystemBackend):
