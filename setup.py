@@ -16,15 +16,16 @@ except ImportError:
     DOC = ''
 else:
     DOC = mod.__doc__.strip()
+    open('README.md', 'w').write(DOC)
 
 NAME = 'yamlpage'
-VER = '3.1.1'
+VER = '3.1.4'
 
 
-open('README.md', 'w').write(DOC)
 if sys.argv[-1] == 'publish':
     if not doctest.testfile('README.md').failed:
-        os.system('python setup.py sdist upload')
+        os.system('python setup.py sdist bdist_wheel')
+        os.system('twine upload dist/*')
         sys.exit(1)
 if len(sys.argv) == 1:
     print('Use "./setup.py register" for registration or update package')

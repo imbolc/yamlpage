@@ -109,7 +109,7 @@ class FileSystemBackend(object):
         try:
             with open(path, 'rb') as f:
                 return f.read().decode('utf-8')
-        except (IOError, UnicodeDecodeError):
+        except (IOError, UnicodeEncodeError, UnicodeDecodeError):
             pass
 
     def put(self, key, content):
