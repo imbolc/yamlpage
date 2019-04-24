@@ -11,7 +11,7 @@ Install
 Usage
 -----
     >>> import os
-    >>> from yamlpage import YamlPage
+    >>> from yamlpage import YamlPage, SingleFolderBackend, MultiFolderBackend
     >>> p = YamlPage('./content')
 
 
