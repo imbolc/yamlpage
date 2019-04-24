@@ -19,7 +19,7 @@ else:
     open('README.md', 'w').write(DOC)
 
 NAME = 'yamlpage'
-VER = '3.1.4'
+VER = '3.2.0'
 
 
 if sys.argv[-1] == 'publish':
